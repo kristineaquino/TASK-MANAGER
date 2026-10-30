@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Task Manager - Ate Tine</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fdf4f8',
+                            100: '#fbe8f2',
+                            500: '#ec4899',
+                            600: '#db2777',
+                            700: '#be185d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome for gorgeous icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js for graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        ::-webkit-scrollbar { width: 5px; height: 5px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 h-full flex flex-col antialiased selection:bg-pink-500 selection:text-white">
+
+    <!-- Notification Toast Container -->
+    <div id="toast-container" class="fixed top-4 right-4 left-4 sm:left-auto z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Main App Wrapper -->
+    <div class="flex flex-col md:flex-row h-screen overflow-hidden relative pb-16 md:pb-0">
+
+        <!-- Sidebar Navigation (Desktop & Tablet Sidebar) -->
+        <aside id="sidebar" class="w-64 bg-slate-900 text-slate-300 flex flex-col transition-transform duration-300 z-40 shadow-2xl md:translate-x-0 -translate-x-full fixed md:static inset-y-0 left-0">
+            <!-- Brand header -->
+            <div class="p-4 sm:p-5 flex items-center justify-between border-b border-slate-800">
+                <div class="flex items-center gap-3">
+                    <div class="bg-pink-600 text-white p-2.5 rounded-xl shadow-lg shadow-pink-600/30">
+                        <i class="fa-solid fa-list-check text-lg"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-white text-base tracking-wide">Task Manager</h1>
+                        <span class="text-xs text-pink-400 font-medium">By Ate Tine</span>
+                    </div>
+                </div>
+                <button onclick="toggleMobileSidebar()" class="md:hidden text-slate-400 hover:text-white p-2">
+                    <i class="fa-solid fa-xmark text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Nav Links -->
+            <nav class="flex-1 px-3 py-6 space-y-1.5 overflow-y-auto">
+                <button onclick="switchTab('todo')" class="nav-btn w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl font-medium text-sm transition-all duration-200 text-left" data-tab="todo">
+                    <i class="fa-solid fa-clipboard-list w-5 text-center text-lg"></i>
+                    <span>To Do Page</span>
+                </button>
+                <button onclick="switchTab('calendar')" class="nav-btn w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl font-medium text-sm transition-all duration-200 text-left" data-tab="calendar">
+                    <i class="fa-solid fa-calendar-days w-5 text-center text-lg"></i>
+                    <span>Calendar Reminder</span>
+                </button>
+                <button onclick="switchTab('settings')" class="nav-btn w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl font-medium text-sm transition-all duration-200 text-left" data-tab="settings">
+                    <i class="fa-solid fa-gear w-5 text-center text-lg"></i>
+                    <span>Settings & Backup</span>
+                </button>
+                <button onclick="switchTab('about')" class="nav-btn w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl font-medium text-sm transition-all duration-200 text-left" data-tab="about">
+                    <i class="fa-solid fa-user-astronaut w-5 text-center text-lg"></i>
+                    <span>About & Support</span>
+                </button>
+            </nav>
+
+            <!-- Timezone & Quick Export Footer in Sidebar -->
+            <div class="p-4 border-t border-slate-800 bg-slate-950/40">
+                <div class="flex items-center justify-between mb-3 text-xs text-slate-400">
+                    <span class="flex items-center gap-1.5"><i class="fa-regular fa-clock text-pink-400"></i> Manila Time</span>
+                    <span id="live-clock" class="font-mono font-semibold text-slate-200">00:00:00</span>
+                </div>
+                <button onclick="exportToExcel()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 shadow-md transition-all active:scale-95">
+                    <i class="fa-solid fa-file-excel text-sm"></i> Export Data (.csv)
+                </button>
+            </div>
+        </aside>
+
+        <!-- Mobile Bottom Navigation Bar -->
+        <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 z-40 flex items-center justify-around py-2 px-2 shadow-2xl">
+            <button onclick="switchTab('todo')" class="bottom-nav-btn flex flex-col items-center gap-1 py-1 px-3 rounded-xl text-slate-400 transition-all" data-tab="todo">
+                <i class="fa-solid fa-clipboard-list text-lg"></i>
+                <span class="text-[10px] font-semibold">To Do</span>
+            </button>
+            <button onclick="switchTab('calendar')" class="bottom-nav-btn flex flex-col items-center gap-1 py-1 px-3 rounded-xl text-slate-400 transition-all" data-tab="calendar">
+                <i class="fa-solid fa-calendar-days text-lg"></i>
+                <span class="text-[10px] font-semibold">Calendar</span>
+            </button>
+            <button onclick="openTaskModal()" class="flex flex-col items-center justify-center bg-pink-600 text-white w-11 h-11 rounded-full shadow-lg shadow-pink-600/40 -mt-4 transition-transform active:scale-90">
+                <i class="fa-solid fa-plus text-base"></i>
+            </button>
+            <button onclick="switchTab('settings')" class="bottom-nav-btn flex flex-col items-center gap-1 py-1 px-3 rounded-xl text-slate-400 transition-all" data-tab="settings">
+                <i class="fa-solid fa-gear text-lg"></i>
+                <span class="text-[10px] font-semibold">Settings</span>
+            </button>
+            <button onclick="switchTab('about')" class="bottom-nav-btn flex flex-col items-center gap-1 py-1 px-3 rounded-xl text-slate-400 transition-all" data-tab="about">
+                <i class="fa-solid fa-user-astronaut text-lg"></i>
+                <span class="text-[10px] font-semibold">About</span>
+            </button>
+        </nav>
+
+        <!-- Main Content Area -->
+        <div class="flex-1 flex flex-col h-full overflow-hidden bg-slate-100">
+            
+            <!-- Top Header Bar -->
+            <header class="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-4 sm:px-6 shrink-0 shadow-sm z-20">
+                <div class="flex items-center gap-3">
+                    <button onclick="toggleMobileSidebar()" class="md:hidden text-slate-700 hover:text-slate-900 text-xl p-2">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    <h2 id="page-title" class="text-lg sm:text-xl font-bold text-slate-800">To Do Manager</h2>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="openTaskModal()" class="hidden sm:flex bg-pink-600 hover:bg-pink-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold items-center gap-2 shadow-lg shadow-pink-600/20 transition-all hover:scale-[1.02] active:scale-[0.98]">
+                        <i class="fa-solid fa-plus"></i> Add New Task
+                    </button>
+                </div>
+            </header>
+
+            <!-- Scrollable View Container -->
+            <main class="flex-1 overflow-y-auto p-3 sm:p-6 lg:p-8 space-y-6">
+
+                <!-- TAB 1: TO DO PAGE -->
+                <section id="tab-todo" class="tab-content space-y-6">
+                    <!-- Today's Graph & Summary Card -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Summary Stats -->
+                        <div class="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center justify-between mb-3">
+                                    <h3 class="font-bold text-slate-800 text-base">Today's Overview</h3>
+                                    <span id="today-date-badge" class="bg-pink-50 text-pink-700 text-xs font-semibold px-2.5 py-1 rounded-full">Oct 30, 2026</span>
+                                </div>
+                                <p class="text-xs sm:text-sm text-slate-500 mb-4 sm:mb-6">Activity status distribution for tasks scheduled today.</p>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="bg-slate-50 p-3 sm:p-3.5 rounded-xl border border-slate-100">
+                                    <span class="text-[11px] sm:text-xs font-medium text-slate-400 block mb-1">Total Today</span>
+                                    <span id="stat-total" class="text-xl sm:text-2xl font-bold text-slate-800">0</span>
+                                </div>
+                                <div class="bg-emerald-50 p-3 sm:p-3.5 rounded-xl border border-emerald-100">
+                                    <span class="text-[11px] sm:text-xs font-medium text-emerald-600 block mb-1">Completed</span>
+                                    <span id="stat-completed" class="text-xl sm:text-2xl font-bold text-emerald-700">0</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Canvas Graph Card -->
+                        <div class="lg:col-span-2 bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col">
+                            <h3 class="font-bold text-slate-800 text-base mb-2">Today's Status Analytics</h3>
+                            <div class="relative flex-1 min-h-[160px] sm:min-h-[180px] flex items-center justify-center">
+                                <canvas id="todayChart" class="max-h-[180px]"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filter & Control Bar -->
+                    <div class="bg-white p-4 sm:p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col sm:flex-row flex-wrap items-center justify-between gap-3">
+                        <div class="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2.5 w-full sm:w-auto flex-1">
+                            <!-- Month Filter -->
+                            <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                                <label class="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider">Month:</label>
+                                <select id="filter-month" onchange="renderTodoList()" class="w-full sm:w-auto bg-slate-50 border border-slate-300 text-slate-800 text-xs sm:text-sm rounded-xl px-2.5 py-2 focus:ring-2 focus:ring-pink-500 focus:outline-none font-medium">
+                                    <option value="all">All Months</option>
+                                    <option value="0">January</option>
+                                    <option value="1">February</option>
+                                    <option value="2">March</option>
+                                    <option value="3">April</option>
+                                    <option value="4">May</option>
+                                    <option value="5">June</option>
+                                    <option value="6">July</option>
+                                    <option value="7">August</option>
+                                    <option value="8">September</option>
+                                    <option value="9">October</option>
+                                    <option value="10">November</option>
+                                    <option value="11">December</option>
+                                </select>
+                            </div>
+                            <!-- Year Filter up to 2035 -->
+                            <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                                <label class="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider">Year:</label>
+                                <select id="filter-year" onchange="renderTodoList()" class="w-full sm:w-auto bg-slate-50 border border-slate-300 text-slate-800 text-xs sm:text-sm rounded-xl px-2.5 py-2 focus:ring-2 focus:ring-pink-500 focus:outline-none font-medium">
+                                    <option value="all">All Years</option>
+                                    <!-- Populated dynamically up to 2035 -->
+                                </select>
+                            </div>
+                            <!-- Category Filter -->
+                            <div class="col-span-2 sm:col-span-1 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                                <label class="text-[10px] sm:text-xs font-semibold text-slate-500 uppercase tracking-wider">Category:</label>
+                                <select id="filter-category" onchange="renderTodoList()" class="w-full sm:w-auto bg-slate-50 border border-slate-300 text-slate-800 text-xs sm:text-sm rounded-xl px-2.5 py-2 focus:ring-2 focus:ring-pink-500 focus:outline-none font-medium">
+                                    <option value="all">All Categories</option>
+                                    <option value="WORK">WORK</option>
+                                    <option value="PERSONAL">PERSONAL</option>
+                                    <option value="SCHOOL">SCHOOL</option>
+                                    <option value="FAMILY">FAMILY</option>
+                                </select>
+                            </div>
+                        </div>
+                        <!-- Search Bar -->
+                        <div class="relative w-full sm:w-56">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                                <i class="fa-solid fa-search"></i>
+                            </span>
+                            <input type="text" id="search-tasks" oninput="renderTodoList()" placeholder="Search activities..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none font-medium">
+                        </div>
+                    </div>
+
+                    <!-- Tasks Table & Mobile Card Container -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div class="p-4 sm:p-5 border-b border-slate-200 flex items-center justify-between">
+                            <h3 class="font-bold text-slate-800 text-base">Task Schedule & List</h3>
+                            <span id="task-count-label" class="text-xs text-slate-500 font-medium">Showing all tasks</span>
+                        </div>
+
+                        <!-- Desktop Table View -->
+                        <div class="hidden md:block overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 text-xs font-bold uppercase tracking-wider">
+                                        <th class="py-3.5 px-4">Status</th>
+                                        <th class="py-3.5 px-4">Urgency</th>
+                                        <th class="py-3.5 px-4">Activity</th>
+                                        <th class="py-3.5 px-4">Date & Time</th>
+                                        <th class="py-3.5 px-4">Category</th>
+                                        <th class="py-3.5 px-4">Link</th>
+                                        <th class="py-3.5 px-4">Remarks (Editable)</th>
+                                        <th class="py-3.5 px-4 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="task-table-body" class="divide-y divide-slate-100 text-sm">
+                                    <!-- Populated via JS -->
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Mobile Card View (Optimized for Phones) -->
+                        <div id="task-mobile-list" class="md:hidden divide-y divide-slate-100">
+                            <!-- Populated via JS -->
+                        </div>
+
+                        <div id="no-tasks-state" class="hidden p-10 text-center">
+                            <div class="inline-flex bg-slate-100 text-slate-400 p-4 rounded-full text-2xl mb-3">
+                                <i class="fa-solid fa-clipboard-question"></i>
+                            </div>
+                            <h4 class="font-bold text-slate-700 text-base mb-1">No tasks found</h4>
+                            <p class="text-xs text-slate-400 mb-4">Get started by creating a new task or resetting your filters.</p>
+                            <button onclick="openTaskModal()" class="bg-pink-600 text-white px-4 py-2 rounded-xl text-xs font-semibold shadow">Add New Task</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 2: CALENDAR REMINDER PAGE -->
+                <section id="tab-calendar" class="tab-content hidden space-y-6">
+                    <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-slate-200">
+                        <!-- Calendar Header Controls -->
+                        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-5 pb-5 border-b border-slate-100">
+                            <div class="flex items-center justify-between w-full sm:w-auto gap-3">
+                                <h3 id="cal-month-year" class="text-base sm:text-xl font-bold text-slate-800">October 2026</h3>
+                                <div class="flex items-center bg-slate-100 p-1 rounded-xl">
+                                    <button onclick="changeMonth(-1)" class="p-2 hover:bg-white rounded-lg text-slate-600 shadow-sm transition-all"><i class="fa-solid fa-chevron-left text-xs"></i></button>
+                                    <button onclick="goToCurrentMonth()" class="px-2.5 py-1 text-xs font-bold text-slate-700 hover:bg-white rounded-lg shadow-sm transition-all">Today</button>
+                                    <button onclick="changeMonth(1)" class="p-2 hover:bg-white rounded-lg text-slate-600 shadow-sm transition-all"><i class="fa-solid fa-chevron-right text-xs"></i></button>
+                                </div>
+                            </div>
+                            <!-- Category legend -->
+                            <div class="flex items-center gap-2.5 text-[11px] sm:text-xs font-medium text-slate-600 flex-wrap">
+                                <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block"></span> WORK</span>
+                                <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block"></span> PERSONAL</span>
+                                <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span> SCHOOL</span>
+                                <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> FAMILY</span>
+                            </div>
+                        </div>
+
+                        <!-- Calendar Grid -->
+                        <div class="grid grid-cols-7 gap-px bg-slate-200 rounded-xl overflow-hidden border border-slate-200">
+                            <!-- Days of Week Headers -->
+                            <div class="bg-slate-50 py-2.5 text-center text-[10px] sm:text-xs font-bold text-slate-500 uppercase">Sun</div>
+                            <div class="bg-slate-50 py-2.5 text-center text-[10px] sm:text-xs font-bold text-slate-500 uppercase">Mon</div>
+                            <div class="bg-slate-50 py-2.5 text-center text-[10px] sm:text-xs font-bold text-slate-500 uppercase">Tue</div>
+                            <div class="bg-slate-50 py-2.5 text-center text-[10px] sm:text-xs font-bold text-slate-500 uppercase">Wed</div>
+                            <div class="bg-slate-50 py-2.5 text-center text-[10px] sm:text-xs font-bold text-slate-500 uppercase">Thu</div>
+                            <div class="bg-slate-50 py-2.5 text-center text-[10px] sm:text-xs font-bold text-slate-500 uppercase">Fri</div>
+                            <div class="bg-slate-50 py-2.5 text-center text-[10px] sm:text-xs font-bold text-slate-500 uppercase">Sat</div>
+                            
+                            <!-- Calendar Days Cells -->
+                            <div id="calendar-grid" class="contents">
+                                <!-- Populated dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 3: SETTINGS PAGE -->
+                <section id="tab-settings" class="tab-content hidden space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Data Management Card -->
+                        <div class="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+                            <div>
+                                <h3 class="font-bold text-slate-800 text-base mb-1">Data Backup & Restore</h3>
+                                <p class="text-xs text-slate-500">Safeguard your task list or migrate between devices using JSON backups.</p>
+                            </div>
+                            <div class="space-y-4">
+                                <button onclick="downloadBackup()" class="w-full bg-slate-900 hover:bg-slate-800 text-white py-3 px-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2.5 shadow transition-all active:scale-[0.98]">
+                                    <i class="fa-solid fa-download"></i> Download Backup (JSON)
+                                </button>
+                                <div class="relative">
+                                    <input type="file" id="restore-file-input" accept=".json" onchange="restoreBackup(event)" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                                    <div class="w-full border-2 border-dashed border-slate-300 hover:border-pink-500 bg-slate-50 py-4 px-4 rounded-xl text-center transition-all">
+                                        <i class="fa-solid fa-cloud-arrow-up text-pink-600 text-lg mb-1"></i>
+                                        <span class="text-xs font-semibold text-slate-700 block">Click or select backup JSON file to restore</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr class="border-slate-100">
+
+                            <!-- Clear Data -->
+                            <div>
+                                <h4 class="font-bold text-red-600 text-sm mb-1">Danger Zone</h4>
+                                <p class="text-xs text-slate-500 mb-3">Permanently remove all tasks and custom settings from local storage.</p>
+                                <button onclick="clearAllDataPrompt()" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 py-2.5 px-4 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all">
+                                    <i class="fa-solid fa-triangle-exclamation"></i> Clear All Data
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Custom Categories Card -->
+                        <div class="bg-white p-5 sm:p-6 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+                            <div>
+                                <h3 class="font-bold text-slate-800 text-base mb-1">Custom Categories</h3>
+                                <p class="text-xs text-slate-500">Add custom tags for specialized task classification.</p>
+                            </div>
+                            <form onsubmit="addCustomCategory(event)" class="flex gap-3">
+                                <input type="text" id="new-category-name" placeholder="e.g., FINANCE, HEALTH" required class="flex-1 bg-slate-50 border border-slate-300 text-slate-800 text-sm rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-pink-500 focus:outline-none font-medium uppercase">
+                                <button type="submit" class="bg-pink-600 hover:bg-pink-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow transition-all">Add</button>
+                            </form>
+                            <div>
+                                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Available Categories</h4>
+                                <div id="category-badges-list" class="flex flex-wrap gap-2">
+                                    <!-- Populated dynamically -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 4: ABOUT PAGE -->
+                <section id="tab-about" class="tab-content hidden space-y-6">
+                    <!-- Portfolio & Bio Card -->
+                    <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-200">
+                        <div class="max-w-3xl space-y-6">
+                            <div class="flex items-center gap-4">
+                                <div class="bg-pink-100 text-pink-600 w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold shadow-inner shrink-0">
+                                    TA
+                                </div>
+                                <div>
+                                    <h3 class="text-xl sm:text-2xl font-bold text-slate-900">Kristine Aquino</h3>
+                                    <span class="text-xs font-semibold text-pink-600 bg-pink-50 px-2.5 py-1 rounded-full">Developer & Creator</span>
+                                </div>
+                            </div>
+
+                            <div class="prose text-slate-600 text-sm leading-relaxed space-y-4">
+                                <p>I’m always open to discussing new projects, creative ideas, or opportunities to collaborate.</p>
+                                <p>Feel free to reach out directly at <a href="mailto:kristine.aquino2019@gmail.com" class="text-pink-600 font-semibold hover:underline">kristine.aquino2019@gmail.com</a> or connect with me on LinkedIn at <a href="https://www.linkedin.com/in/kristineaquino/" target="_blank" class="text-pink-600 font-semibold hover:underline">https://www.linkedin.com/in/kristineaquino/</a></p>
+                                <p>I look forward to hearing from you!</p>
+                                <p class="font-bold text-slate-800 pt-2">~ Ate Tine</p>
+                            </div>
+
+                            <div class="pt-4 border-t border-slate-100 flex flex-wrap gap-3">
+                                <a href="https://sites.google.com/view/kristinedaquino/home" target="_blank" class="bg-slate-900 hover:bg-slate-800 text-white py-2.5 px-4 rounded-xl text-xs font-semibold flex items-center gap-2 shadow transition-all">
+                                    <i class="fa-solid fa-globe"></i> Visit Portfolio
+                                </a>
+                                <a href="https://www.linkedin.com/in/kristineaquino/" target="_blank" class="bg-blue-600 hover:bg-blue-700 text-white py-2.5 px-4 rounded-xl text-xs font-semibold flex items-center gap-2 shadow transition-all">
+                                    <i class="fa-brands fa-linkedin"></i> Connect on LinkedIn
+                                </a>
+                                <a href="mailto:kristine.aquino2019@gmail.com" class="bg-pink-600 hover:bg-pink-700 text-white py-2.5 px-4 rounded-xl text-xs font-semibold flex items-center gap-2 shadow transition-all">
+                                    <i class="fa-solid fa-envelope"></i> Send Email
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Suggestion / Found an Error Form -->
+                    <div class="bg-white p-6 sm:p-8 rounded-2xl shadow-sm border border-slate-200">
+                        <div class="max-w-3xl space-y-6">
+                            <div>
+                                <h3 class="text-lg font-bold text-slate-900 mb-1"><i class="fa-solid fa-bug text-pink-600 mr-2"></i> Suggestion or Found an Error?</h3>
+                                <p class="text-xs text-slate-500">Send feedback directly to Ate Tine.</p>
+                            </div>
+                            <form onsubmit="submitFeedback(event)" class="space-y-4">
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Your Email Address</label>
+                                    <input type="email" id="feedback-email" required placeholder="you@example.com" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none font-medium">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-2">Report / Suggestion Details</label>
+                                    <textarea id="feedback-message" required rows="4" placeholder="Describe the bug or share your brilliant suggestion..." class="w-full bg-slate-50 border border-slate-300 rounded-xl p-4 text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none font-medium"></textarea>
+                                </div>
+                                <button type="submit" class="w-full sm:w-auto bg-pink-600 hover:bg-pink-700 text-white px-6 py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 shadow-lg shadow-pink-600/20 transition-all">
+                                    <i class="fa-solid fa-paper-plane"></i> Send Message to kristine.aquino2019@gmail.com
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- TASK ADD / EDIT MODAL -->
+    <div id="task-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+        <div class="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div class="p-5 sm:p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                <h3 id="modal-title" class="font-bold text-slate-800 text-lg">Add New Task</h3>
+                <button onclick="closeTaskModal()" class="text-slate-400 hover:text-slate-700 text-xl p-2"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="task-form" onsubmit="saveTaskForm(event)" class="p-5 sm:p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+                <input type="hidden" id="task-id">
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Date *</label>
+                        <input type="date" id="task-date" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none font-medium">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Time *</label>
+                        <input type="time" id="task-time" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none font-medium">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Activity *</label>
+                    <input type="text" id="task-activity" required placeholder="What needs to be done?" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none font-medium">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Category *</label>
+                        <select id="task-category" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none font-medium uppercase">
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Urgency *</label>
+                        <select id="task-urgency" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none font-medium">
+                            <option value="NORMAL">NORMAL</option>
+                            <option value="LOW">LOW</option>
+                            <option value="MEDIUM">MEDIUM</option>
+                            <option value="URGENT">URGENT</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Status *</label>
+                        <select id="task-status" required class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none font-medium">
+                            <option value="ON GOING">ON GOING</option>
+                            <option value="COMPLETED">COMPLETED</option>
+                            <option value="RESCHED">RESCHED</option>
+                            <option value="CANCELED">CANCELED</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Link (Optional)</label>
+                    <input type="url" id="task-link" placeholder="https://example.com" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none font-medium">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 uppercase tracking-wider mb-1.5">Remarks</label>
+                    <textarea id="task-remarks" rows="3" placeholder="Add any notes or remarks..." class="w-full bg-slate-50 border border-slate-300 rounded-xl p-3.5 text-sm focus:ring-2 focus:ring-pink-500 focus:outline-none font-medium"></textarea>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                    <button type="button" onclick="closeTaskModal()" class="px-5 py-2.5 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-all">Cancel</button>
+                    <button type="submit" class="bg-pink-600 hover:bg-pink-700 text-white px-6 py-2.5 rounded-xl text-xs font-semibold shadow-lg shadow-pink-600/20 transition-all">Save Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div id="confirm-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center space-y-4 animate-in fade-in zoom-in duration-200">
+            <div id="confirm-icon" class="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-xl mx-auto">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div>
+                <h3 id="confirm-title" class="font-bold text-slate-800 text-base mb-1">Confirm Action</h3>
+                <p id="confirm-desc" class="text-xs text-slate-500">Are you sure you want to perform this action?</p>
+            </div>
+            <div class="flex gap-3 pt-2">
+                <button onclick="closeConfirmModal()" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 py-2.5 rounded-xl text-xs font-semibold transition-all">Cancel</button>
+                <button id="confirm-btn" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2.5 rounded-xl text-xs font-semibold transition-all">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application JavaScript -->
+    <script>
+        // --- State Management & Defaults ---
+        let tasks = JSON.parse(localStorage.getItem('at_tasks')) || [
+            {
+                id: 't-1',
+                date: '2026-10-30',
+                time: '09:00',
+                activity: 'Review quarterly project milestones',
+                category: 'WORK',
+                urgency: 'URGENT',
+                status: 'ON GOING',
+                link: 'https://github.com',
+                remarks: 'Prepare slides before meeting.'
+            },
+            {
+                id: 't-2',
+                date: '2026-10-30',
+                time: '13:30',
+                activity: 'Dentist appointment at Manila Clinic',
+                category: 'PERSONAL',
+                urgency: 'MEDIUM',
+                status: 'COMPLETED',
+                link: '',
+                remarks: 'Completed checkup.'
+            },
+            {
+                id: 't-3',
+                date: '2026-10-30',
+                time: '16:00',
+                activity: 'Submit Advanced Algorithms assignment',
+                category: 'SCHOOL',
+                urgency: 'URGENT',
+                status: 'ON GOING',
+                link: 'https://classroom.google.com',
+                remarks: 'Testing pending test cases.'
+            },
+            {
+                id: 't-4',
+                date: '2026-11-02',
+                time: '18:00',
+                activity: 'Family dinner celebration',
+                category: 'FAMILY',
+                urgency: 'NORMAL',
+                status: 'RESCHED',
+                link: '',
+                remarks: 'Postponed to next weekend.'
+            }
+        ];
+
+        let categories = JSON.parse(localStorage.getItem('at_categories')) || ['WORK', 'PERSONAL', 'SCHOOL', 'FAMILY'];
+        let currentTab = 'todo';
+        let todayChartInstance = null;
+        let calendarDate = new Date(2026, 9, 30); // October 30, 2026 default
+
+        // --- Initialization ---
+        window.onload = function() {
+            initYearDropdowns();
+            updateLiveClock();
+            setInterval(updateLiveClock, 1000);
+            
+            const todayStr = getManilaDateString();
+            document.getElementById('task-date').value = todayStr;
+            document.getElementById('today-date-badge').innerText = formatDateReadable(todayStr);
+
+            populateCategoryDropdowns();
+            renderTodoList();
+            renderCalendar();
+            renderCategoryBadges();
+            initTodayChart();
+        };
+
+        // --- Timezone (Manila, Philippines UTC+8) ---
+        function getManilaDateString() {
+            const now = new Date();
+            const formatter = new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'Asia/Manila',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+            return formatter.format(now);
+        }
+
+        function updateLiveClock() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('en-US', { timeZone: 'Asia/Manila', hour12: false });
+            document.getElementById('live-clock').innerText = timeStr;
+        }
+
+        // --- Navigation ---
+        function switchTab(tabId) {
+            currentTab = tabId;
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+            // Desktop Sidebar buttons highlight
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-pink-600', 'text-white', 'shadow-lg', 'shadow-pink-600/30');
+                btn.classList.add('text-slate-300', 'hover:bg-slate-800', 'hover:text-white');
+                if(btn.getAttribute('data-tab') === tabId) {
+                    btn.classList.add('bg-pink-600', 'text-white', 'shadow-lg', 'shadow-pink-600/30');
+                    btn.classList.remove('text-slate-300', 'hover:bg-slate-800', 'hover:text-white');
+                }
+            });
+
+            // Mobile Bottom Nav buttons highlight
+            document.querySelectorAll('.bottom-nav-btn').forEach(btn => {
+                btn.classList.remove('text-pink-500');
+                btn.classList.add('text-slate-400');
+                if(btn.getAttribute('data-tab') === tabId) {
+                    btn.classList.add('text-pink-500');
+                    btn.classList.remove('text-slate-400');
+                }
+            });
+
+            const titles = {
+                'todo': 'To Do Manager',
+                'calendar': 'Calendar Reminder',
+                'settings': 'Settings & Backup',
+                'about': 'About & Support'
+            };
+            document.getElementById('page-title').innerText = titles[tabId];
+
+            if(tabId === 'calendar') {
+                renderCalendar();
+            } else if(tabId === 'todo') {
+                renderTodoList();
+                updateTodayChart();
+            }
+
+            if(window.innerWidth < 768) {
+                document.getElementById('sidebar').classList.add('-translate-x-full');
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function toggleMobileSidebar() {
+            document.getElementById('sidebar').classList.toggle('-translate-x-full');
+        }
+
+        function initYearDropdowns() {
+            const yearSelect = document.getElementById('filter-year');
+            for(let y = 2024; y <= 2035; y++) {
+                const opt = document.createElement('option');
+                opt.value = y;
+                opt.innerText = y;
+                if(y === 2026) opt.selected = true;
+                yearSelect.appendChild(opt);
+            }
+            document.getElementById('filter-month').value = '9'; // October
+        }
+
+        function populateCategoryDropdowns() {
+            const catSelect = document.getElementById('task-category');
+            catSelect.innerHTML = '';
+            categories.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat;
+                opt.innerText = cat;
+                catSelect.appendChild(opt);
+            });
+        }
+
+        // --- Task CRUD Operations ---
+        function openTaskModal(taskId = null) {
+            const modal = document.getElementById('task-modal');
+            const form = document.getElementById('task-form');
+            form.reset();
+            document.getElementById('task-id').value = '';
+            document.getElementById('task-date').value = getManilaDateString();
+
+            if(taskId) {
+                document.getElementById('modal-title').innerText = 'Edit Task';
+                const task = tasks.find(t => t.id === taskId);
+                if(task) {
+                    document.getElementById('task-id').value = task.id;
+                    document.getElementById('task-date').value = task.date;
+                    document.getElementById('task-time').value = task.time;
+                    document.getElementById('task-activity').value = task.activity;
+                    document.getElementById('task-category').value = task.category;
+                    document.getElementById('task-urgency').value = task.urgency;
+                    document.getElementById('task-status').value = task.status;
+                    document.getElementById('task-link').value = task.link || '';
+                    document.getElementById('task-remarks').value = task.remarks || '';
+                }
+            } else {
+                document.getElementById('modal-title').innerText = 'Add New Task';
+            }
+            modal.classList.remove('hidden');
+        }
+
+        function closeTaskModal() {
+            document.getElementById('task-modal').classList.add('hidden');
+        }
+
+        function saveTaskForm(e) {
+            e.preventDefault();
+            const id = document.getElementById('task-id').value;
+            const taskData = {
+                id: id ? id : 't-' + Date.now(),
+                date: document.getElementById('task-date').value,
+                time: document.getElementById('task-time').value,
+                activity: document.getElementById('task-activity').value,
+                category: document.getElementById('task-category').value,
+                urgency: document.getElementById('task-urgency').value,
+                status: document.getElementById('task-status').value,
+                link: document.getElementById('task-link').value,
+                remarks: document.getElementById('task-remarks').value
+            };
+
+            if(id) {
+                const index = tasks.findIndex(t => t.id === id);
+                if(index !== -1) tasks[index] = taskData;
+                showToast('Task updated successfully!', 'success');
+            } else {
+                tasks.push(taskData);
+                showToast('Task added successfully!', 'success');
+            }
+
+            saveAndRefresh();
+            closeTaskModal();
+        }
+
+        function deleteTask(id) {
+            openConfirmModal('Delete Task', 'Are you sure you want to delete this task?', () => {
+                tasks = tasks.filter(t => t.id !== id);
+                saveAndRefresh();
+                showToast('Task deleted successfully.', 'info');
+            });
+        }
+
+        function saveAndRefresh() {
+            localStorage.setItem('at_tasks', JSON.stringify(tasks));
+            renderTodoList();
+            renderCalendar();
+            updateTodayChart();
+        }
+
+        function updateTaskRemarks(id, newRemarks) {
+            const task = tasks.find(t => t.id === id);
+            if(task) {
+                task.remarks = newRemarks;
+                localStorage.setItem('at_tasks', JSON.stringify(tasks));
+            }
+        }
+
+        function updateTaskStatusInline(id, newStatus) {
+            const task = tasks.find(t => t.id === id);
+            if(task) {
+                task.status = newStatus;
+                saveAndRefresh();
+                showToast('Status updated!', 'success');
+            }
+        }
+
+        // --- Render To Do List ---
+        function renderTodoList() {
+            const monthFilter = document.getElementById('filter-month').value;
+            const yearFilter = document.getElementById('filter-year').value;
+            const catFilter = document.getElementById('filter-category').value;
+            const searchQuery = document.getElementById('search-tasks').value.toLowerCase();
+
+            let filtered = tasks.filter(t => {
+                const [y, m, d] = t.date.split('-');
+                if(monthFilter !== 'all' && parseInt(m) - 1 !== parseInt(monthFilter)) return false;
+                if(yearFilter !== 'all' && y !== yearFilter) return false;
+                if(catFilter !== 'all' && t.category !== catFilter) return false;
+                if(searchQuery && !t.activity.toLowerCase().includes(searchQuery) && !t.remarks.toLowerCase().includes(searchQuery)) return false;
+                return true;
+            });
+
+            filtered.sort((a,b) => (a.date + a.time).localeCompare(b.date + b.time));
+
+            const tbody = document.getElementById('task-table-body');
+            const mobileList = document.getElementById('task-mobile-list');
+            const noState = document.getElementById('no-tasks-state');
+            
+            tbody.innerHTML = '';
+            mobileList.innerHTML = '';
+
+            if(filtered.length === 0) {
+                noState.classList.remove('hidden');
+                document.getElementById('task-count-label').innerText = '0 tasks found';
+                return;
+            }
+            noState.classList.add('hidden');
+            document.getElementById('task-count-label').innerText = `Showing ${filtered.length} task(s)`;
+
+            let lastDate = '';
+            filtered.forEach(task => {
+                if(task.date !== lastDate) {
+                    lastDate = task.date;
+                    // Desktop table separator row
+                    const sepRow = document.createElement('tr');
+                    sepRow.className = 'bg-slate-100/80 font-bold text-slate-700 text-xs';
+                    sepRow.innerHTML = `<td colspan="8" class="py-2.5 px-4"><i class="fa-solid fa-calendar-day mr-2 text-pink-600"></i> ${formatDateReadable(task.date)}</td>`;
+                    tbody.appendChild(sepRow);
+
+                    // Mobile separator card
+                    const mobileSep = document.createElement('div');
+                    mobileSep.className = 'bg-slate-100 px-4 py-2 font-bold text-slate-700 text-xs flex items-center gap-2';
+                    mobileSep.innerHTML = `<i class="fa-solid fa-calendar-day text-pink-600"></i> ${formatDateReadable(task.date)}`;
+                    mobileList.appendChild(mobileSep);
+                }
+
+                // Status & Urgency Badge Styling
+                let statusColor = 'bg-blue-50 text-blue-700 border-blue-200';
+                if(task.status === 'COMPLETED') statusColor = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+                if(task.status === 'CANCELED') statusColor = 'bg-red-50 text-red-700 border-red-200';
+                if(task.status === 'RESCHED') statusColor = 'bg-amber-50 text-amber-700 border-amber-200';
+
+                let urgencyColor = 'text-slate-600 bg-slate-100';
+                if(task.urgency === 'URGENT') urgencyColor = 'text-red-700 bg-red-50 font-bold';
+                if(task.urgency === 'MEDIUM') urgencyColor = 'text-amber-700 bg-amber-50 font-medium';
+
+                let catBadge = 'bg-slate-100 text-slate-700';
+                if(task.category === 'WORK') catBadge = 'bg-blue-100 text-blue-700';
+                if(task.category === 'PERSONAL') catBadge = 'bg-purple-100 text-purple-700';
+                if(task.category === 'SCHOOL') catBadge = 'bg-amber-100 text-amber-700';
+                if(task.category === 'FAMILY') catBadge = 'bg-emerald-100 text-emerald-700';
+
+                // Desktop Table Row
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50/80 transition-all border-b border-slate-100';
+                tr.innerHTML = `
+                    <td class="py-3 px-4">
+                        <select onchange="updateTaskStatusInline('${task.id}', this.value)" class="text-xs font-semibold px-2.5 py-1 rounded-lg border ${statusColor} focus:outline-none cursor-pointer">
+                            <option value="ON GOING" ${task.status === 'ON GOING' ? 'selected' : ''}>ON GOING</option>
+                            <option value="COMPLETED" ${task.status === 'COMPLETED' ? 'selected' : ''}>COMPLETED</option>
+                            <option value="RESCHED" ${task.status === 'RESCHED' ? 'selected' : ''}>RESCHED</option>
+                            <option value="CANCELED" ${task.status === 'CANCELED' ? 'selected' : ''}>CANCELED</option>
+                        </select>
+                    </td>
+                    <td class="py-3 px-4"><span class="text-xs px-2.5 py-1 rounded-md ${urgencyColor}">${task.urgency}</span></td>
+                    <td class="py-3 px-4 font-semibold text-slate-800">${escapeHtml(task.activity)}</td>
+                    <td class="py-3 px-4 text-xs text-slate-500 whitespace-nowrap">
+                        <div class="font-medium text-slate-700">${task.date}</div>
+                        <div class="text-slate-400"><i class="fa-regular fa-clock mr-1"></i> ${task.time}</div>
+                    </td>
+                    <td class="py-3 px-4"><span class="text-xs font-semibold px-2.5 py-1 rounded-lg ${catBadge}">${task.category}</span></td>
+                    <td class="py-3 px-4">
+                        ${task.link ? `<a href="${task.link}" target="_blank" class="text-pink-600 hover:underline text-xs flex items-center gap-1 font-semibold"><i class="fa-solid fa-link"></i> Link</a>` : '<span class="text-slate-400 text-xs">None</span>'}
+                    </td>
+                    <td class="py-3 px-4">
+                        <input type="text" value="${escapeHtml(task.remarks || '')}" onblur="updateTaskRemarks('${task.id}', this.value)" placeholder="Click to edit remarks..." class="w-full bg-slate-50 hover:bg-white focus:bg-white border border-transparent hover:border-slate-200 focus:border-pink-500 rounded-lg px-3 py-1.5 text-xs text-slate-700 focus:outline-none transition-all">
+                    </td>
+                    <td class="py-3 px-4 text-right whitespace-nowrap">
+                        <button onclick="openTaskModal('${task.id}')" class="text-slate-400 hover:text-pink-600 p-1.5 transition-all"><i class="fa-solid fa-pen-to-square"></i></button>
+                        <button onclick="deleteTask('${task.id}')" class="text-slate-400 hover:text-red-600 p-1.5 transition-all"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+
+                // Mobile Card Item
+                const mobileCard = document.createElement('div');
+                mobileCard.className = 'p-4 space-y-3 bg-white hover:bg-slate-50 transition-all';
+                mobileCard.innerHTML = `
+                    <div class="flex items-start justify-between gap-2">
+                        <div>
+                            <span class="text-[10px] font-semibold px-2 py-0.5 rounded-md ${catBadge} mb-1 inline-block">${task.category}</span>
+                            <h4 class="font-bold text-slate-900 text-sm">${escapeHtml(task.activity)}</h4>
+                        </div>
+                        <div class="flex items-center gap-1 shrink-0">
+                            <button onclick="openTaskModal('${task.id}')" class="text-slate-400 hover:text-pink-600 p-2"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button onclick="deleteTask('${task.id}')" class="text-slate-400 hover:text-red-600 p-2"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+                    <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+                        <div class="flex items-center gap-2">
+                            <select onchange="updateTaskStatusInline('${task.id}', this.value)" class="text-xs font-semibold px-2.5 py-1 rounded-lg border ${statusColor} focus:outline-none cursor-pointer">
+                                <option value="ON GOING" ${task.status === 'ON GOING' ? 'selected' : ''}>ON GOING</option>
+                                <option value="COMPLETED" ${task.status === 'COMPLETED' ? 'selected' : ''}>COMPLETED</option>
+                                <option value="RESCHED" ${task.status === 'RESCHED' ? 'selected' : ''}>RESCHED</option>
+                                <option value="CANCELED" ${task.status === 'CANCELED' ? 'selected' : ''}>CANCELED</option>
+                            </select>
+                            <span class="text-[11px] px-2 py-0.5 rounded ${urgencyColor}">${task.urgency}</span>
+                        </div>
+                        <div class="font-medium text-slate-600">
+                            <i class="fa-regular fa-clock mr-1"></i>${task.time}
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-1 pt-1 border-t border-slate-100 text-xs">
+                        ${task.link ? `<a href="${task.link}" target="_blank" class="text-pink-600 font-semibold hover:underline flex items-center gap-1"><i class="fa-solid fa-link"></i> ${task.link}</a>` : ''}
+                        <input type="text" value="${escapeHtml(task.remarks || '')}" onblur="updateTaskRemarks('${task.id}', this.value)" placeholder="Tap to add remarks..." class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-700 focus:outline-none focus:border-pink-500 mt-1">
+                    </div>
+                `;
+                mobileList.appendChild(mobileCard);
+            });
+        }
+
+        // --- Calendar Visualization ---
+        function changeMonth(dir) {
+            calendarDate.setMonth(calendarDate.getMonth() + dir);
+            renderCalendar();
+        }
+
+        function goToCurrentMonth() {
+            calendarDate = new Date();
+            renderCalendar();
+        }
+
+        function renderCalendar() {
+            const year = calendarDate.getFullYear();
+            const month = calendarDate.getMonth();
+
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            document.getElementById('cal-month-year').innerText = `${monthNames[month]} ${year}`;
+
+            const grid = document.getElementById('calendar-grid');
+            grid.innerHTML = '';
+
+            const firstDayIndex = new Date(year, month, 1).getDay();
+            const totalDays = new Date(year, month + 1, 0).getDate();
+            const prevTotalDays = new Date(year, month, 0).getDate();
+
+            for(let i = firstDayIndex - 1; i >= 0; i--) {
+                const dayNum = prevTotalDays - i;
+                const cell = createCalendarCell(year, month - 1, dayNum, true);
+                grid.appendChild(cell);
+            }
+
+            for(let day = 1; day <= totalDays; day++) {
+                const cell = createCalendarCell(year, month, day, false);
+                grid.appendChild(cell);
+            }
+
+            const totalCellsSoFar = firstDayIndex + totalDays;
+            const remainingCells = totalCellsSoFar <= 35 ? 35 - totalCellsSoFar : 42 - totalCellsSoFar;
+            for(let day = 1; day <= remainingCells; day++) {
+                const cell = createCalendarCell(year, month + 1, day, true);
+                grid.appendChild(cell);
+            }
+        }
+
+        function createCalendarCell(year, month, day, isPadding) {
+            const cellDate = new Date(year, month, day);
+            const dateStr = cellDate.toISOString().split('T')[0];
+
+            const div = document.createElement('div');
+            div.className = `min-h-[90px] sm:min-h-[110px] bg-white p-1.5 sm:p-2 flex flex-col justify-between transition-all ${isPadding ? 'bg-slate-50/60 text-slate-400' : 'text-slate-800'}`;
+
+            const todayStr = getManilaDateString();
+            const isToday = (dateStr === todayStr);
+            const dayTasks = tasks.filter(t => t.date === dateStr);
+
+            let badgesHtml = '';
+            dayTasks.slice(0, 2).forEach(t => {
+                let colorClass = 'bg-blue-100 text-blue-800';
+                if(t.category === 'PERSONAL') colorClass = 'bg-purple-100 text-purple-800';
+                if(t.category === 'SCHOOL') colorClass = 'bg-amber-100 text-amber-800';
+                if(t.category === 'FAMILY') colorClass = 'bg-emerald-100 text-emerald-800';
+                if(t.status === 'COMPLETED') colorClass += ' line-through opacity-75';
+
+                badgesHtml += `
+                    <div class="text-[9px] sm:text-[10px] px-1 py-0.5 rounded truncate font-medium ${colorClass}" title="${t.activity}">
+                        ${t.time} ${escapeHtml(t.activity)}
+                    </div>
+                `;
+            });
+
+            if(dayTasks.length > 2) {
+                badgesHtml += `<div class="text-[9px] sm:text-[10px] text-slate-500 font-semibold px-0.5">+${dayTasks.length - 2} more</div>`;
+            }
+
+            div.innerHTML = `
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] sm:text-xs font-bold ${isToday ? 'bg-pink-600 text-white w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center shadow-md' : 'text-slate-700'}">${day}</span>
+                    ${dayTasks.length > 0 ? `<span class="text-[9px] sm:text-[10px] bg-slate-100 text-slate-600 px-1 py-0.5 rounded-full font-semibold">${dayTasks.length}</span>` : ''}
+                </div>
+                <div class="space-y-0.5 sm:space-y-1 mt-1 overflow-hidden flex-1 cursor-pointer" onclick="openDateTasks('${dateStr}')">
+                    ${badgesHtml}
+                </div>
+            `;
+            return div;
+        }
+
+        function openDateTasks(dateStr) {
+            switchTab('todo');
+            const [y, m, d] = dateStr.split('-');
+            document.getElementById('filter-year').value = y;
+            document.getElementById('filter-month').value = parseInt(m) - 1;
+            renderTodoList();
+        }
+
+        // --- Today's Analytics Chart ---
+        function initTodayChart() {
+            const ctx = document.getElementById('todayChart').getContext('2d');
+            const counts = getTodayStatusCounts();
+
+            todayChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['COMPLETED', 'ON GOING', 'RESCHED', 'CANCELED'],
+                    datasets: [{
+                        data: [counts.COMPLETED, counts['ON GOING'], counts.RESCHED, counts.CANCELED],
+                        backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#ef4444'],
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 10,
+                                font: { size: 10, family: 'Inter' }
+                            }
+                        }
+                    }
+                }
+            });
+            updateTodayStatsDisplay(counts);
+        }
+
+        function updateTodayChart() {
+            const counts = getTodayStatusCounts();
+            if(todayChartInstance) {
+                todayChartInstance.data.datasets[0].data = [counts.COMPLETED, counts['ON GOING'], counts.RESCHED, counts.CANCELED];
+                todayChartInstance.update();
+            }
+            updateTodayStatsDisplay(counts);
+        }
+
+        function getTodayStatusCounts() {
+            const todayStr = getManilaDateString();
+            const todayTasks = tasks.filter(t => t.date === todayStr);
+            const counts = { COMPLETED: 0, 'ON GOING': 0, RESCHED: 0, CANCELED: 0 };
+            todayTasks.forEach(t => {
+                if(counts[t.status] !== undefined) counts[t.status]++;
+            });
+            return counts;
+        }
+
+        function updateTodayStatsDisplay(counts) {
+            const total = counts.COMPLETED + counts['ON GOING'] + counts.RESCHED + counts.CANCELED;
+            document.getElementById('stat-total').innerText = total;
+            document.getElementById('stat-completed').innerText = counts.COMPLETED;
+        }
+
+        // --- Settings / Backup / Restore / Categories ---
+        function addCustomCategory(e) {
+            e.preventDefault();
+            const input = document.getElementById('new-category-name');
+            const val = input.value.trim().toUpperCase();
+            if(val && !categories.includes(val)) {
+                categories.push(val);
+                localStorage.setItem('at_categories', JSON.stringify(categories));
+                populateCategoryDropdowns();
+                renderCategoryBadges();
+                input.value = '';
+                showToast(`Category "${val}" added successfully!`, 'success');
+            } else {
+                showToast('Category already exists or invalid.', 'error');
+            }
+        }
+
+        function renderCategoryBadges() {
+            const container = document.getElementById('category-badges-list');
+            container.innerHTML = '';
+            categories.forEach(cat => {
+                const badge = document.createElement('span');
+                badge.className = 'bg-slate-100 text-slate-700 border border-slate-200 text-xs font-semibold px-3 py-1.5 rounded-xl flex items-center gap-2';
+                badge.innerHTML = `<span>${cat}</span>`;
+                if(!['WORK', 'PERSONAL', 'SCHOOL', 'FAMILY'].includes(cat)) {
+                    badge.innerHTML += `<button onclick="removeCategory('${cat}')" class="text-slate-400 hover:text-red-600"><i class="fa-solid fa-xmark"></i></button>`;
+                }
+                container.appendChild(badge);
+            });
+        }
+
+        function removeCategory(cat) {
+            categories = categories.filter(c => c !== cat);
+            localStorage.setItem('at_categories', JSON.stringify(categories));
+            populateCategoryDropdowns();
+            renderCategoryBadges();
+            showToast('Category removed.', 'info');
+        }
+
+        function downloadBackup() {
+            const backupData = {
+                version: '1.0',
+                exportDate: new Date().toISOString(),
+                tasks: tasks,
+                categories: categories
+            };
+            const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `task_manager_backup_${getManilaDateString()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('Backup downloaded successfully!', 'success');
+        }
+
+        function restoreBackup(e) {
+            const file = e.target.files[0];
+            if(!file) return;
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    const data = JSON.parse(evt.target.result);
+                    if(data.tasks && Array.isArray(data.tasks)) {
+                        tasks = data.tasks;
+                        localStorage.setItem('at_tasks', JSON.stringify(tasks));
+                    }
+                    if(data.categories && Array.isArray(data.categories)) {
+                        categories = data.categories;
+                        localStorage.setItem('at_categories', JSON.stringify(categories));
+                        populateCategoryDropdowns();
+                        renderCategoryBadges();
+                    }
+                    saveAndRefresh();
+                    showToast('Backup restored successfully!', 'success');
+                } catch(err) {
+                    showToast('Invalid backup file format.', 'error');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function clearAllDataPrompt() {
+            openConfirmModal('Clear All Data', 'Are you completely sure? This action cannot be undone.', () => {
+                tasks = [];
+                categories = ['WORK', 'PERSONAL', 'SCHOOL', 'FAMILY'];
+                localStorage.removeItem('at_tasks');
+                localStorage.removeItem('at_categories');
+                populateCategoryDropdowns();
+                renderCategoryBadges();
+                saveAndRefresh();
+                showToast('All data has been cleared.', 'info');
+            });
+        }
+
+        // --- Export to Excel (.csv) ---
+        function exportToExcel() {
+            let csvContent = "data:text/csv;charset=utf-8,";
+            csvContent += "ID,Date,Time,Activity,Category,Urgency,Status,Link,Remarks\r\n";
+
+            tasks.forEach(t => {
+                const row = [
+                    t.id,
+                    t.date,
+                    t.time,
+                    `"${(t.activity || '').replace(/"/g, '""')}"`,
+                    t.category,
+                    t.urgency,
+                    t.status,
+                    `"${(t.link || '').replace(/"/g, '""')}"`,
+                    `"${(t.remarks || '').replace(/"/g, '""')}"`
+                ];
+                csvContent += row.join(",") + "\r\n";
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `task_manager_export_${getManilaDateString()}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast('CSV Export generated successfully!', 'success');
+        }
+
+        // --- About Feedback Form ---
+        function submitFeedback(e) {
+            e.preventDefault();
+            const email = document.getElementById('feedback-email').value;
+            const message = document.getElementById('feedback-message').value;
+
+            const subject = encodeURIComponent("Task Manager Feedback / Error Report from " + email);
+            const body = encodeURIComponent(`From: ${email}\n\nMessage:\n${message}`);
+            
+            window.location.href = `mailto:kristine.aquino2019@gmail.com?subject=${subject}&body=${body}`;
+            showToast('Opening email client to send message to Ate Tine!', 'success');
+        }
+
+        // --- Confirmation Modal Helper ---
+        let confirmCallback = null;
+        function openConfirmModal(title, desc, callback) {
+            document.getElementById('confirm-title').innerText = title;
+            document.getElementById('confirm-desc').innerText = desc;
+            confirmCallback = callback;
+            document.getElementById('confirm-modal').classList.remove('hidden');
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirm-modal').classList.add('hidden');
+            confirmCallback = null;
+        }
+
+        document.getElementById('confirm-btn').onclick = function() {
+            if(confirmCallback) confirmCallback();
+            closeConfirmModal();
+        };
+
+        // --- Toast Notifications ---
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let bg = 'bg-slate-900 text-white';
+            let icon = 'fa-circle-check text-emerald-400';
+            if(type === 'error') { bg = 'bg-red-600 text-white'; icon = 'fa-triangle-exclamation text-white'; }
+            if(type === 'info') { bg = 'bg-blue-600 text-white'; icon = 'fa-circle-info text-white'; }
+
+            toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-xs font-semibold ${bg} transition-all duration-300 translate-y-2 opacity-0`;
+            toast.innerHTML = `<i class="fa-solid ${icon} text-sm"></i> <span>${escapeHtml(message)}</span>`;
+            
+            container.appendChild(toast);
+            setTimeout(() => { toast.classList.remove('translate-y-2', 'opacity-0'); }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('translate-y-2', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        function escapeHtml(str) {
+            if(!str) return '';
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        function formatDateReadable(dateStr) {
+            const [y, m, d] = dateStr.split('-');
+            const date = new Date(y, parseInt(m) - 1, d);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+    </script>
+</body>
+</html>
