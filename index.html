@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Task Manager - Ate Tine</title>
+    <title id="html-page-title">Task Manager - Ate Tine</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.js -->
@@ -25,7 +25,7 @@
                     <i class="fa-solid fa-clipboard-check text-xl"></i>
                 </div>
                 <div>
-                    <h1 class="text-lg font-bold text-slate-900 leading-tight">Task Manager</h1>
+                    <h1 id="header-app-title" class="text-lg font-bold text-slate-900 leading-tight">Task Manager</h1>
                     <p class="text-xs text-slate-500">Manila, Philippines Time</p>
                 </div>
             </div>
@@ -204,20 +204,16 @@
         <!-- ================= 3. SETTINGS PAGE ================= -->
         <div id="tab-settings" class="tab-content space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Backup & Restore -->
+                
+                <!-- Page Title Customizer -->
                 <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
                     <h3 class="text-sm font-bold text-slate-900 flex items-center space-x-2">
-                        <i class="fa-solid fa-database text-pink-600"></i><span>Data Management</span>
+                        <i class="fa-solid fa-heading text-pink-600"></i><span>Page Title Settings</span>
                     </h3>
-                    <p class="text-xs text-slate-500">Download a backup JSON file or restore your tasks from a previous backup.</p>
-                    <div class="flex flex-wrap gap-3 pt-2">
-                        <button onclick="downloadBackup()" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition-all flex items-center space-x-2">
-                            <i class="fa-solid fa-download"></i><span>Download Backup</span>
-                        </button>
-                        <label class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-4 py-2.5 rounded-xl cursor-pointer transition-all flex items-center space-x-2">
-                            <i class="fa-solid fa-upload"></i><span>Restore Backup</span>
-                            <input type="file" id="restore-file-input" onchange="restoreBackup(event)" accept=".json" class="hidden">
-                        </label>
+                    <p class="text-xs text-slate-500">Customize the title displayed in the browser tab and top navigation header.</p>
+                    <div class="flex gap-2 pt-2">
+                        <input type="text" id="app-title-input" placeholder="e.g., Ate Tine's Hub" class="flex-1 bg-slate-50 border border-slate-200 text-xs rounded-xl px-3 py-2 outline-none focus:border-pink-500">
+                        <button onclick="saveAppTitle()" class="bg-pink-600 hover:bg-pink-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition-all">Save Title</button>
                     </div>
                 </div>
 
@@ -236,8 +232,25 @@
                     </div>
                 </div>
 
+                <!-- Backup & Restore -->
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                    <h3 class="text-sm font-bold text-slate-900 flex items-center space-x-2">
+                        <i class="fa-solid fa-database text-pink-600"></i><span>Data Management</span>
+                    </h3>
+                    <p class="text-xs text-slate-500">Download a backup JSON file or restore your tasks from a previous backup.</p>
+                    <div class="flex flex-wrap gap-3 pt-2">
+                        <button onclick="downloadBackup()" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition-all flex items-center space-x-2">
+                            <i class="fa-solid fa-download"></i><span>Download Backup</span>
+                        </button>
+                        <label class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-4 py-2.5 rounded-xl cursor-pointer transition-all flex items-center space-x-2">
+                            <i class="fa-solid fa-upload"></i><span>Restore Backup</span>
+                            <input type="file" id="restore-file-input" onchange="restoreBackup(event)" accept=".json" class="hidden">
+                        </label>
+                    </div>
+                </div>
+
                 <!-- Danger Zone -->
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-rose-200 space-y-4 md:col-span-2">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-rose-200 space-y-4">
                     <h3 class="text-sm font-bold text-rose-600 flex items-center space-x-2">
                         <i class="fa-solid fa-triangle-exclamation"></i><span>Danger Zone</span>
                     </h3>
@@ -246,6 +259,7 @@
                         <i class="fa-solid fa-trash-can"></i><span>Clear All Data</span>
                     </button>
                 </div>
+
             </div>
         </div>
 
@@ -405,10 +419,13 @@
         ];
 
         let customCategories = JSON.parse(localStorage.getItem('tine_custom_categories')) || ['PROJECT KRAFTINE'];
+        let appTitle = localStorage.getItem('tine_app_title') || "Task Manager - Ate Tine";
+        
         let statusChartInstance = null;
         let currentDate = new Date();
 
         document.addEventListener('DOMContentLoaded', () => {
+            initAppTitleUI();
             initYearDropdowns();
             initCustomCategoriesUI();
             updateTodayBadge();
@@ -416,6 +433,22 @@
             renderCalendar();
             initChart();
         });
+
+        function initAppTitleUI() {
+            document.getElementById('html-page-title').innerText = appTitle;
+            document.getElementById('header-app-title').innerText = appTitle;
+            document.getElementById('app-title-input').value = appTitle;
+        }
+
+        function saveAppTitle() {
+            const inputVal = document.getElementById('app-title-input').value.trim();
+            if(inputVal) {
+                appTitle = inputVal;
+                localStorage.setItem('tine_app_title', appTitle);
+                initAppTitleUI();
+                alert('Page title updated successfully!');
+            }
+        }
 
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
